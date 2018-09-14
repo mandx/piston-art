@@ -1,0 +1,9 @@
+[package]
+name = "rp-schotter"
+version = "0.1.0"
+authors = ["Armando Perez <armando@roastery.com>"]
+
+[dependencies]
+piston_window = "^0.80"
+pistoncore-sdl2_window = "^0.50"
+rand = "^0.5"
