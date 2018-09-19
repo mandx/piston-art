@@ -1,10 +1,18 @@
-extern crate rand;
+extern crate find_folder;
 extern crate piston_window;
+extern crate rand;
 extern crate sdl2_window;
 
-use rand::prelude::*;
+mod fps_counter;
+
 use piston_window::*;
+use rand::prelude::*;
 use sdl2_window::Sdl2Window;
+
+use fps_counter::FPSCounter;
+
+static SQUARES_COLOR: &[f32; 4] = &[0.0, 0.0, 0.0, 0.5];
+static TEXT_COLOR: &[f32; 4] = &[0.0, 0.0, 0.0, 1.0];
 
 fn draw_rect(
     slot_x: i32,
@@ -17,7 +25,6 @@ fn draw_rect(
     let rect_width = radius * 2.0;
     let start_x = f64::from(slot_x) * rect_width;
     let start_y = f64::from(slot_y) * rect_width;
-    let color = [0.0, 0.0, 0.0, 0.75];
 
     let transform = context
         .transform
@@ -25,33 +32,51 @@ fn draw_rect(
         .rot_rad(factor);
 
     line(
-        color,
+        *SQUARES_COLOR,
         1.0,
         [-radius, -radius, radius, -radius],
         transform,
         graphics,
     );
     line(
-        color,
+        *SQUARES_COLOR,
         1.0,
         [radius, -radius, radius, radius],
         transform,
         graphics,
     );
     line(
-        color,
+        *SQUARES_COLOR,
         1.0,
         [radius, radius, -radius, radius],
         transform,
         graphics,
     );
     line(
-        color,
+        *SQUARES_COLOR,
         1.0,
         [-radius, radius, -radius, -radius],
         transform,
         graphics,
     );
+
+    // rectangle(*SQUARES_COLOR, [
+    //     -radius, -radius, radius * 2.0, radius * 2.0,
+    //     ], transform, graphics)
+}
+
+fn draw_fps(fps: usize, glyphs: &mut Glyphs, context: &piston_window::Context, graphics: &mut G2d) {
+    let transform = context.transform.trans(20.0, 50.0);
+
+    if let Err(error) = text::Text::new_color(*TEXT_COLOR, 32).draw(
+        &format!("{:?}", fps),
+        glyphs,
+        &context.draw_state,
+        transform,
+        graphics,
+    ) {
+        println!("Text rendering error {:?}", error);
+    }
 }
 
 fn main() {
@@ -61,7 +86,17 @@ fn main() {
         .build()
         .unwrap_or_else(|e| panic!("Failed to build PistonWindow: {}", e));
 
+    let ref font = find_folder::Search::ParentsThenKids(3, 3)
+        .for_folder("assets")
+        .expect("Failed to locate assets folder")
+        .join("FiraSans-Regular.ttf");
+
+    let factory = window.factory.clone();
+    let mut glyphs = Glyphs::new(font, factory, TextureSettings::new()).unwrap();
+
+    let mut fps_counter = FPSCounter::new();
     let mut blocks_count_x = 9;
+
     while let Some(event) = window.next() {
         if let Some(delta) = event.mouse_scroll(|_x, y| y as i32) {
             blocks_count_x = match blocks_count_x + delta {
@@ -69,6 +104,8 @@ fn main() {
                 _ => 1,
             };
         }
+
+        let fps = fps_counter.tick();
 
         window.draw_2d(&event, |context, graphics: &mut G2d| {
             clear([1.0, 1.0, 1.0, 1.0], graphics);
@@ -86,12 +123,14 @@ fn main() {
                         slot_x,
                         slot_y,
                         random::<f64>()
-                           * (f64::from(slot_y) / 50.0)
-                           * (if random() { 1.0 } else { -1.0 }), // factor
+                            * (f64::from(slot_y) / 50.0)
+                            * (if random() { 1.0 } else { -1.0 }), // factor
                         radius,
                         &context,
                         graphics,
-                    )
+                    );
+
+                    draw_fps(fps, &mut glyphs, &context, graphics);
                 }
             }
         });
