@@ -86,7 +86,7 @@ fn main() {
         .build()
         .unwrap_or_else(|e| panic!("Failed to build PistonWindow: {}", e));
 
-    let ref font = find_folder::Search::ParentsThenKids(3, 3)
+    let font = &find_folder::Search::ParentsThenKids(3, 3)
         .for_folder("assets")
         .expect("Failed to locate assets folder")
         .join("FiraSans-Regular.ttf");
